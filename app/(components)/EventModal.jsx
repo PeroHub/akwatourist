@@ -9,9 +9,28 @@ export default function EventModal({ event, onClose, onUpdate }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (status) => {
+  const handleSubmit = async (status) => {
     const updatedEvent = { ...formData, status };
     onUpdate(updatedEvent);
+
+    try {
+      const response = await fetch("/api/updateEventStatus", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: formData._id, status }),
+      });
+  
+      if (!response.ok) {
+        const { message } = await response.json();
+        throw new Error(message || "Failed to update event");
+      }
+  
+      const { event } = await response.json();
+      onUpdate(event); // Update the parent state
+    } catch (error) {
+      console.error("Error updating event:", error.message);
+      alert("Failed to update event: " + error.message);
+    }
   };
 
   return (
@@ -71,9 +90,9 @@ export default function EventModal({ event, onClose, onUpdate }) {
               onChange={handleChange}
               className="mt-1 block w-full border px-2 py-2 focus:outline-none border-gray-300 rounded-md shadow-sm sm:text-sm"
             >
-              <option value="Pending">Active</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Postponed">Postponed</option>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              {/* <option value="Postponed">Postponed</option> */}
             </select>
           </div>
         </div>

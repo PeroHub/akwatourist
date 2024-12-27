@@ -1,12 +1,70 @@
-"use client"
+"use client";
+
 import Header from "../(components)/Header";
+import { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function AddEvent() {
-  const handleSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  console.log(loading, "loading")
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    console.log("Event Data:", data); // Replace with API call to save data
+
+    data.status = "pending"
+    console.log(data, "data")
+    try {
+        setLoading(true);
+        
+      // Convert file to base64 for Cloudinary upload
+      if (data.picture) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64Image = reader.result;
+
+          // Add picture to payload
+          const payload = {
+            ...data,
+            picture: base64Image,
+          };
+
+          // Make API request
+          const response = await fetch("/api/addEvent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await response.json();
+
+        //   if (response.ok) {
+        //     setSuccess("Event added successfully!");
+
+        //   } else {
+        //     throw new Error(result.message || "Error adding event.");
+        //   }
+        };
+        reader.readAsDataURL(data.picture);
+        toast.success("Event submitted successfully!");
+        e.target.reset();
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error submitting event:", error);
+    //   setError(error.message || "Error adding event.");
+      toast.error(error.message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -14,16 +72,10 @@ export default function AddEvent() {
       <Header />
       <main className="max-w-[600px] border border-gray-250 mx-auto mt-10 px-4 py-6">
         <h1 className="text-xl font-bold text-gray-800 pl-6 mb-6">Add New Event</h1>
-        <form
-          className="bg-white p-6 space-y-4"
-          onSubmit={handleSubmit}
-        >
+        <form className="bg-white p-6 space-y-4" onSubmit={handleSubmit}>
           {/* Title */}
           <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
               Title
             </label>
             <input
@@ -37,16 +89,14 @@ export default function AddEvent() {
 
           {/* Picture */}
           <div>
-            <label
-              htmlFor="picture"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="picture" className="block text-sm font-medium text-gray-700">
               Picture
             </label>
             <input
               type="file"
               name="picture"
               id="picture"
+              required
               accept="image/*"
               className="mt-1 block w-full cursor-pointer text-gray-500 border-b py-2 px-2 focus:outline-none border-gray-300 rounded-md shadow-sm sm:text-sm"
             />
@@ -54,10 +104,7 @@ export default function AddEvent() {
 
           {/* Venue */}
           <div>
-            <label
-              htmlFor="venue"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="venue" className="block text-sm font-medium text-gray-700">
               Venue
             </label>
             <input
@@ -71,10 +118,7 @@ export default function AddEvent() {
 
           {/* Description */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -88,10 +132,7 @@ export default function AddEvent() {
 
           {/* Category */}
           <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
               Category
             </label>
             <select
@@ -109,16 +150,20 @@ export default function AddEvent() {
           </div>
 
           {/* Submit Button */}
-          <div className="">
+          <div>
             <button
               type="submit"
               className="w-full mt-4 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              disabled={loading}
             >
-              Submit Event
+              {loading ? "Submitting..." : "Submit Event"}
             </button>
           </div>
         </form>
+        {/* {error && <p className="text-red-500 mt-4">{error}</p>}
+        {success && <p className="text-green-500 mt-4">{success}</p>} */}
       </main>
+      <ToastContainer position="top-center" />
     </div>
   );
 }
